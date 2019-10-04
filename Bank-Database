@@ -1,0 +1,256 @@
+// Include Header Files
+#include <mysql_connection.h>
+#include <cppconn/driver.h>
+#include <cppconn/statement.h>
+#include <cppconn/resultset.h>
+#include <cppconn/exception.h>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+using namespace sql; //The MySQL classes being used below reside in sql namespace
+
+// Defining Constant Variables
+#define SERVER "localhost"
+#define USER "root"
+#define PASSWORD "mysql"
+#define DATABASE "Final_Project2"
+
+//Global variables
+const string customerInsert = "INSERT INTO customer(customerID, name, street, city, state, zip, phone_number, email) ";
+const string accountInsert = "INSERT INTO account(accountID, customer_id, balance) ";
+const string credit_cardInsert = "INSERT INTO credit_card(card_number, exp_date, credit_limit, account_id) ";
+const string transactionInsert = "INSERT INTO transaction(transactionID, withdraw, deposit) ";
+const string branchInsert = "INSERT INTO branch(branchID, name, city, phone_number) ";
+const string loanInsert = "INSERT INTO loan(loan_number, amount, account_id, branch_id) ";
+const string employeeInsert = "INSERT INTO employee(employeeID, name, salary, branch_id) ";
+
+bool checkIfExists(Statement* stmt, const string& field, const string& value, const string& table) { //Check if data entered exists
+	try {
+		ResultSet* results = stmt->executeQuery("SELECT * FROM " + table + " WHERE " + field + " = '" + value + "'");
+
+		bool exists = results->next(); // if results->next() is true, then value exists in table
+		delete results;
+
+		return exists;
+	}
+	catch (const SQLException& exc) {
+		return false;
+	}
+}
+
+vector<string> getColumnFromTable(Statement* stmt, const string& field, const string& table) { //Retrieve column from chosen table
+	vector<string> column;
+
+	try {
+		ResultSet* results = stmt->executeQuery("SELECT " + field + " FROM " + table + " ORDER BY " + field);
+
+		while (results->next()) {
+			column.push_back(results->getString(1)); //Enter data from query into vector column
+		}
+
+		delete results; //Delete resultset
+	}
+	catch (const SQLException& exc) {
+		cerr << "Unable to get column '" << field << "' from '" << table << "': " << exc.what() << endl;
+	}
+
+	return column;
+}
+
+void updateAddressInCustomer(Statement* stmt) { //Update address in customer
+	string id, street, city, state, zip;
+
+	cout << "Enter street: ";
+	getline(cin, street);
+	cout << "Enter city: ";
+	getline(cin, city);
+	cout << "Enter state (use abbreviation): ";
+	getline(cin, state);
+	cout << "Enter zip: ";
+	getline(cin, zip);
+
+	vector<string> customerIDs = getColumnFromTable(stmt, "customerID", "customer"); //Vector to hold customer ids
+
+	cout << "Possible customer IDs:"; //Output the possible customer ids
+	for (unsigned int i = 0; i < customerIDs.size(); i++) {
+		cout << endl << customerIDs.at(i);
+	}
+	cout << endl << endl;
+	bool exists = false;
+	while (!exists) { //Check if customer id entered exists
+		cout << "Enter customer ID to modify data for: "; //Ask user for id to modify that row
+		getline(cin, id);
+		exists = checkIfExists(stmt, "customerID", id, "customer");
+		if (!exists) {
+			cout << "That customer ID does not exist." << endl;
+		}
+	}
+
+	try {
+		const string updateRow = "UPDATE customer SET street = '" + street + "', city = '" + city + "', state = '" + state + "', zip = '" + zip + "' WHERE customerID = " + id; //Create update statement
+		string originalRow = "SELECT street, city, state, zip from customer WHERE customerID = " + id; //Get original row data
+		ResultSet* rset1 = stmt->executeQuery(originalRow); //Get resultset for original row
+
+		stmt->execute(updateRow); //Execute update
+		string update = "SELECT street, city, state, zip from customer WHERE customerID = " + id; //Get updated row data
+		ResultSet* rset2 = stmt->executeQuery(update); //Get resultset for updated row
+
+		while (rset1->next()) { //Print out the orginal customer address
+			cout << "The original customer address is: " << rset1->getString(1) << ", " << rset1->getString(2) << ", " << rset1->getString(3) << ", " << rset1->getString(4) << endl; //Print field name and field data
+		}
+
+		while (rset2->next()) { //Print out updated customer address
+			cout << "The updated customer address is: " << rset2->getString(1) << ", " << rset2->getString(2) << ", " << rset2->getString(3) << ", " << rset2->getString(4) << endl; //Print field name and field data
+		}
+
+		delete rset1; //Delete resultsets
+		delete rset2;
+	}
+	catch (const SQLException& exc) { //Report any errors
+		cerr << "Update failed: " << exc.what() << endl;
+	}
+}
+
+void deleteTransaction(Statement* stmt) { //Delete data in table
+	string id;
+	vector<string> transactionIDs = getColumnFromTable(stmt, "transactionID", "transaction"); //Vector to hold transaction ids
+
+	cout << "Possible transaction IDs:"; //Output the possible transaction ids
+	for (unsigned int i = 0; i < transactionIDs.size(); i++) {
+		cout << endl << transactionIDs.at(i);
+	}
+	cout << endl << endl;
+	bool exists = false;
+	while (!exists) { //Check if transaction id exists
+		cout << "Enter transaction id to delete:"; //Ask user for id to delete that row
+		getline(cin, id);
+		exists = checkIfExists(stmt, "transactionID", id, "transaction");
+		if (!exists) {
+			cout << "That transaction ID does not exist." << endl;
+		}
+	}
+
+	try {
+		const string deleteRow = "DELETE from transaction WHERE transactionID = '" + id + "'"; //Create delete statement
+		string originalRow = "SELECT transactionID, withdraw, deposit from transaction WHERE transactionID = " + id; //Get data from original row
+		ResultSet* rset = stmt->executeQuery(originalRow); //Resultset for selected row
+
+		while (rset->next()) { //Print out the deleted transaction
+			cout << "The deleted transaction is:" << endl << "transactionID: " << rset->getString(1) << endl << "withdraw: " << rset->getString(2) << endl << "deposit: " << rset->getString(3) << endl; //Print field name and field data
+		}
+
+		delete rset; //Delete resultset
+	}
+	catch (const SQLException& exc) { //Report any errors
+		cerr << "Delete failed: " << exc.what() << endl;
+	}
+}
+
+void insertEmployee(Statement* stmt) { //Insert data into a table
+	string value, id, name, salary, branch_id;
+	const vector<string> branchIDs = getColumnFromTable(stmt, "branchID", "branch"); //Vector of branch ids
+	bool exists = true;
+	while (exists) { //Check if id already exists
+		cout << "Enter an id: ";
+		getline(cin, id);
+		exists = checkIfExists(stmt, "employeeID", id, "employee");
+		if (exists) {
+			cout << "That employee ID already exists." << endl;
+		}
+	}
+
+	cout << "Enter a name: ";
+	getline(cin, name);
+	cout << "Enter a salary: ";
+	getline(cin, salary);
+	cout << "Possible branch ids:"; //Outpuut possible branch ids
+	for (unsigned int i = 0; i < branchIDs.size(); i++) {
+		cout << endl << branchIDs.at(i);
+	}
+	cout << endl;
+	cout << "Enter a branch_id: ";
+	getline(cin, branch_id);
+	cout << endl;
+
+	string insertRow = employeeInsert + "VALUES ('" + id + "', '" + name + "', '" + salary + "', '" + branch_id + "')"; //Create insert statement
+
+	try {
+		stmt->execute(insertRow);
+		string insertedRow = "SELECT employeeID, name, salary, branch_id FROM employee WHERE employeeID = " + id; //Get data from original row
+		ResultSet* rset = stmt->executeQuery(insertedRow); //Resultset for selected row
+
+		while (rset->next()) { //Print out the new employee
+			cout << "The new employee is:" << endl
+				<< "employeeID: " << rset->getString(1) << endl
+				<< "name: " << rset->getString(2) << endl
+				<< "salary: " << rset->getString(3) << endl
+				<< "branch_id: " << rset->getString(4) << endl; //Print field name and field data
+		}
+
+		delete rset; //Delete resultset
+	}
+	catch (const SQLException& exc) { //Report any errors
+		cerr << "Insert failed: " << exc.what() << endl;
+	}
+}
+
+void joinTables(Statement* stmt) { //Join tables and display results
+	string field, value;
+	vector<string> allFields{ "customerID", "name", "street", "city", "state", "zip", "phone_number", "email", "accountID", "balance" }; //Vector of all field names
+
+	bool exists = false;
+	while (!exists) { //Check if field exists in customer or account tables
+		cout << "Enter a field from customer or account table: ";
+		getline(cin, field);
+
+		for (const string& aField : allFields) {
+			if (field == aField) {
+				exists = true;
+				break;
+			}
+		}
+
+		if (!exists) {
+			cout << "That field does not exist." << endl;
+		}
+	}
+	
+	bool exists1 = false;
+	bool exists2 = false;
+	while (!(exists1 || exists2)) { //Check if value entered exists in the entered field
+		cout << "Enter a value for " + field + ": ";
+		getline(cin, value);
+		exists1 = checkIfExists(stmt, field, value, "customer");
+		exists2 = checkIfExists(stmt, field, value, "account");
+		if (!(exists1 || exists2)) {
+			cout << "That value does not exist." << endl;
+		}
+	}
+
+	string query = ("SELECT * FROM customer JOIN account ON customer.customerID = account.customer_id WHERE " + field + " = " + value); //Create query to join tables
+
+	try {
+		ResultSet* rset = stmt->executeQuery(query); //Resultset for selected data
+
+		while (rset->next()) {
+
+			cout << "  CustomerID: " << rset->getString("customerID") << endl
+				 << "  Name: " << rset->getString("name") << endl
+				 << "  Street: " << rset->getString("street") << endl
+				 << "  City: " << rset->getString("city") << endl
+				 << "  State: " << rset->getString("state") << endl
+				 << "  Zip: " << rset->getString("zip") << endl
+				 << "  Phone number: " << rset->getString("phone_number") << endl
+				 << "  Email: " << rset->getString("email") << endl
+				 << "  AccountID: " << rset->getString("accountID") << endl
+				 << "  Balance: " << rset->getString("balance") << endl; //Print field name and field data
+		}
+		delete rset; //Delete resultset
+	}
+	catch (const SQLException& exc) { //Report any errors
+		cerr << "Join failed: " << exc.what() << endl;
+	}
+}
+
