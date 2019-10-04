@@ -1,0 +1,169 @@
+int main() {
+	bool newDatabase = true; //Change to false when database exists
+
+	Driver *driver; //If you don't use namespace sql above then use the syntax, sql::Driver *driver;
+	Connection *conn = nullptr;
+	Statement  *stmt = nullptr;
+
+	try {
+		// Create a connection
+		driver = get_driver_instance();
+		conn = driver->connect(SERVER, USER, PASSWORD);
+		stmt = conn->createStatement();
+
+		if (newDatabase) {
+			stmt->execute("DROP DATABASE IF EXISTS " DATABASE);
+			stmt->execute("CREATE DATABASE " DATABASE);
+			stmt->execute("USE " DATABASE);
+
+			stmt->execute("DROP TABLE IF EXISTS customer");
+			stmt->execute("CREATE TABLE customer(customerID INT(5), name VARCHAR(20), street VARCHAR(30), city VARCHAR(20), state VARCHAR(2), "
+				"zip VARCHAR(5), phone_number VARCHAR(15), email VARCHAR(30), PRIMARY KEY (customerID), UNIQUE (name))");
+
+			stmt->execute(customerInsert + "VALUES ('00001', 'Ramon Glance', '123 6th Street', 'Melbourne', 'FL', '32904', '251-546-9442', 'rglance@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00002', 'Jarred Jacobs', '71 Pilgrim Avenue', 'Chevy Chase', 'MD', '20815', '125-546-4478', 'jjacobs@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00003', 'Genoveva Tarrance', '70 Bowman Street', 'South Windsor', 'CT', '06074', '949-569-4371', 'gtarrance@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00004', 'Jay Pinkett', '4 Goldfield Road', 'Melbourne', 'FL', '32904', '251-446-8851', 'jaypinkett@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00005', 'Catherine Jenner', '62 Shirley Avenue', 'South Windsor', 'CT', '06074', '949-912-7380', 'catjenner@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00006', 'Francisco Baltazar', '514 Magnolia Street', 'Orlando', 'FL', '32806', '226-906-2721', 'franciscob@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00007', 'Chantel Demarco', '7334 Lafayette Avenue', 'New Britain', 'CT', '06051', '671-925-1352', 'demarco1@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00008', 'Joy Grow', '9903 Academy Street', 'Easton', 'PA', '18042', '907-531-9830', 'jgrow2@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00009', 'Winston Collyer', '996 Charles Drive', 'Stroudsburg', 'PA', '18360', '378-684-3446', 'collyerw@gmail.com')");
+			stmt->execute(customerInsert + "VALUES ('00010', 'Grace Lovejoy', '570 West Clay Road', 'Centreville', 'VA', '20120', '732-525-9611', 'lovejoy@gmail.com')");
+
+			stmt->execute("DROP TABLE IF EXISTS account");
+			stmt->execute("CREATE TABLE account(accountID INT(10), customer_id INT(5), balance NUMERIC(10, 2), PRIMARY KEY (accountID), "
+				"FOREIGN KEY (customer_id) REFERENCES customer(customerID) ON DELETE CASCADE)");
+
+			stmt->execute(accountInsert + "VALUES ('0000000001', '00001', '15870.94')");
+			stmt->execute(accountInsert + "VALUES ('0000000002', '00002', '37218.21')");
+			stmt->execute(accountInsert + "VALUES ('0000000003', '00003', '5520.65')");
+			stmt->execute(accountInsert + "VALUES ('0000000004', '00004', '43864.72')");
+			stmt->execute(accountInsert + "VALUES ('0000000005', '00005', '2987.53')");
+			stmt->execute(accountInsert + "VALUES ('0000000006', '00006', '213789.90')");
+			stmt->execute(accountInsert + "VALUES ('0000000007', '00007', '14140.31')");
+			stmt->execute(accountInsert + "VALUES ('0000000008', '00008', '1530717.39')");
+			stmt->execute(accountInsert + "VALUES ('0000000009', '00009', '2340291.02')");
+			stmt->execute(accountInsert + "VALUES ('0000000010', '00010', '72572.94')");
+
+			stmt->execute("DROP TABLE IF EXISTS credit_card");
+			stmt->execute("CREATE TABLE credit_card(card_number VARCHAR(20), exp_date VARCHAR(5), credit_limit VARCHAR(10), account_id INT(10), "
+				"PRIMARY KEY (card_number), FOREIGN KEY (account_id) REFERENCES account(accountID) ON DELETE CASCADE)");
+
+			stmt->execute(credit_cardInsert + "VALUES('4024 0071 0920 3116', '06/19', '3,100', '0000000001')");
+			stmt->execute(credit_cardInsert + "VALUES('4916 5648 7583 3105', '08/02', '6,550', '0000000002')");
+			stmt->execute(credit_cardInsert + "VALUES('4716 0953 7140 6270', '01/30', '12,600', '0000000003')");
+			stmt->execute(credit_cardInsert + "VALUES('5445 2603 0979 3059', '11/20', '10,500', '0000000004')");
+			stmt->execute(credit_cardInsert + "VALUES('5528 8934 2954 9108', '04/14', '102,000', '0000000005')");
+			stmt->execute(credit_cardInsert + "VALUES('5350 6608 5760 7812', '03/19', '31,000', '0000000006')");
+			stmt->execute(credit_cardInsert + "VALUES('6011 5955 2973 0502', '05/18', '28,750', '0000000007')");
+			stmt->execute(credit_cardInsert + "VALUES('6011 6825 1839 3524', '02/28', '4,750', '0000000008')");
+			stmt->execute(credit_cardInsert + "VALUES('4556 4534 2286 5510', '08/13', '71,000', '0000000009')");
+			stmt->execute(credit_cardInsert + "VALUES('4916 7927 8559 6096', '10/25', '16,000', '0000000010')");
+
+			stmt->execute("DROP TABLE IF EXISTS transaction");
+			stmt->execute("CREATE TABLE transaction(transactionID INT(10), withdraw NUMERIC(10,2), deposit NUMERIC(10,2), PRIMARY KEY (transactionID), "
+				"FOREIGN KEY (transactionID) REFERENCES account(accountID) ON DELETE CASCADE)");
+
+			stmt->execute(transactionInsert + "VALUES('0000000001', '132.40', '200.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000002', '11.87', '100.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000003', '78.00', '43.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000004', '27.18', '300.75')");
+			stmt->execute(transactionInsert + "VALUES('0000000005', '10.76', '100.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000006', '34.59', '55.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000007', '48.96', '250.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000008', '130.00', '200.00')");
+			stmt->execute(transactionInsert + "VALUES('0000000009', '94.57', '317.62')");
+			stmt->execute(transactionInsert + "VALUES('0000000010', '50.10', '269.06')");
+
+			stmt->execute("DROP TABLE IF EXISTS branch");
+			stmt->execute("CREATE TABLE branch(branchID INT(5), name VARCHAR(20), city VARCHAR(20), phone_number VARCHAR(15), PRIMARY KEY (branchID))");
+
+			stmt->execute(branchInsert + "VALUES('91733', 'Aurora Bank Group', 'Melbourne', '876-703-8963')");
+			stmt->execute(branchInsert + "VALUES('91554', 'Aurora Bank Group', 'Chevy Chase', '861-116-3971')");
+			stmt->execute(branchInsert + "VALUES('29062', 'Aurora Bank Group', 'South Windsor', '897-866-4895')");
+			stmt->execute(branchInsert + "VALUES('85670', 'Aurora Bank Group', 'Orlando', '896-379-1456')");
+			stmt->execute(branchInsert + "VALUES('61253', 'Aurora Bank Group', 'New Britain', '826-366-5388')");
+			stmt->execute(branchInsert + "VALUES('76147', 'Aurora Bank Group', 'Easton', '846-368-7224')");
+			stmt->execute(branchInsert + "VALUES('67160', 'Aurora Bank Group', 'Stroudsburg', '847-488-3382')");
+			stmt->execute(branchInsert + "VALUES('37609', 'Aurora Bank Group', 'Centreville', '833-953-7961')");
+			stmt->execute(branchInsert + "VALUES('83008', 'Aurora Bank Group', 'Alexandria', '816-565-3761')");
+			stmt->execute(branchInsert + "VALUES('41019', 'Aurora Bank Group', 'Baltimore', '887-149-5266')");
+
+			stmt->execute("DROP TABLE IF EXISTS loan");
+			stmt->execute("CREATE TABLE loan(loan_number BIGINT(10), amount VARCHAR(15), account_id INT(10), branch_id INT(5), PRIMARY KEY (loan_number), "
+				"FOREIGN KEY (account_id) REFERENCES account(accountID) ON DELETE CASCADE, FOREIGN KEY (branch_id) REFERENCES branch(branchID))");
+
+			stmt->execute(loanInsert + "VALUES('3487283469', '8,000', '0000000001', '91733')");
+			stmt->execute(loanInsert + "VALUES('2625956726', '55,000', '0000000002', '91554')");
+			stmt->execute(loanInsert + "VALUES('9016151497', '200,000', '0000000003', '29062')");
+			stmt->execute(loanInsert + "VALUES('8832278403', '3,500', '0000000004', '85670')");
+			stmt->execute(loanInsert + "VALUES('1126095364', '47,800', '0000000005', '61253')");
+			stmt->execute(loanInsert + "VALUES('3981649524', '139,000', '0000000006', '76147')");
+			stmt->execute(loanInsert + "VALUES('2031734112', '92,500', '0000000007', '67160')");
+			stmt->execute(loanInsert + "VALUES('4750293514', '81,000', '0000000008', '37609')");
+			stmt->execute(loanInsert + "VALUES('0302978990', '38,500', '0000000009', '83008')");
+			stmt->execute(loanInsert + "VALUES('4562181567', '60,000', '0000000010', '41019')");
+
+			stmt->execute("DROP TABLE IF EXISTS employee");
+			stmt->execute("CREATE TABLE employee(employeeID INT(5), name VARCHAR(20), salary NUMERIC(8,2), branch_id INT(5), PRIMARY KEY (employeeID), "
+				"FOREIGN KEY (branch_id) REFERENCES branch(branchID))");
+
+			stmt->execute(employeeInsert + "VALUES ('70996', 'Gerald Zimmerman', '46640.00', '91733')");
+			stmt->execute(employeeInsert + "VALUES ('88301', 'Dianne Glover', '78410.00', '91554')");
+			stmt->execute(employeeInsert + "VALUES ('03118', 'Lily Stone', '51980.00', '29062')");
+			stmt->execute(employeeInsert + "VALUES ('41501', 'Andres James', '102900.00', '85670')");
+			stmt->execute(employeeInsert + "VALUES ('48235', 'Amos Bridges', '99430.00', '61253')");
+			stmt->execute(employeeInsert + "VALUES ('74611', 'Grace Wallace', '37500.00', '76147')");
+			stmt->execute(employeeInsert + "VALUES ('31147', 'Stacy Ballard', '115720.00', '67160')");
+			stmt->execute(employeeInsert + "VALUES ('53191', 'Ed Owens', '63300.00', '37609')");
+			stmt->execute(employeeInsert + "VALUES ('22184', 'Shannon Luna', '84200.00', '83008')");
+			stmt->execute(employeeInsert + "VALUES ('07809', 'Wilson Boyd', '55120.00', '41019')");
+		}
+		else {
+			stmt->execute("USE " DATABASE);
+		}
+		int num = 0;
+		do {
+			cout << endl << "Menu" << endl;
+			cout << "1. Modify the address in the customer table" << endl;
+			cout << "2. Delete an account transaction" << endl;
+			cout << "3. Insert new employee into employee table" << endl;
+			cout << "4. Join customer and account and show data" << endl;
+			cout << "5. Exit" << endl;
+
+			cout << "Enter a number to select an option (1-5): ";
+			string option;
+			getline(cin, option);
+			num = stoi(option);
+
+			if (num < 1 || num > 5) {
+				cout << "The number entered is not an option." << endl;
+				continue;
+			}
+			if (num == 1) { //Call function to modify customer address
+				updateAddressInCustomer(stmt);
+			}
+			if (num == 2) { //Call function to delete transaction from the table
+				deleteTransaction(stmt);
+			}
+			if (num == 3) { //Call function to insert new employee into table
+				insertEmployee(stmt);
+			}
+			if (num == 4) { //Call function to join customer and account and display data
+				joinTables(stmt);
+			}
+		} while (num != 5);
+
+		delete stmt;
+		delete conn;
+	}
+	catch (sql::SQLException &exc) {
+		cerr
+			<< "# SQLException: " << exc.what()
+			<< " (MySQL error code: " << exc.getErrorCode()
+			<< ", SQLState: " << exc.getSQLState() << " )" << endl;
+	}
+
+	return 0;
+}
